@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        #border{
+            align-self: auto;
+            margin: auto;
+            justify-content: center;
+        }
+        #myBtn{
+            height: 50px;
+            width: 80px;
+        }
+        .flex-container-1{
+            flex-direction: row;
+        }
+        .flex-container{
+            display: flex;
+            justify-content: center;
+        }
+        video{
+            width: 720px;
+            height: 480px;
+            margin-top: 1px;
+            padding: 5px;            
+            border: 5px solid yellowgreen;        
+        }
+        body{
+            background-color: black;
+            background: repeat;
+        }
+        #Prediction {
+            text-align: center;
+            text-rendering: auto;
+            font-size: xx-large;
+            color: rgb(255, 255, 255);
+            font-family: sans-serif;
+            flex-grow: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex-container">
+        <div id="border">
+            <video autoplay="true" id="videoElement"></video>
+        </div>
+    </div>
+    <div class="flex-container-1">
+        <div class = 'video'>
+            <p id="Prediction">text</p>
+        </div>
+    </div>
+</body>
+</html>
+<script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.3/socket.io.js" integrity="sha512-iWPnCISAd/J+ZacwV2mbNLCaPGRrRo5OS81lKTVPtRg1wGTC20Cfmp5Us5RcbLv42QLdbAWl0MI57yox5VecQg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+            var socket = io('https://kmsthegreat-studious-space-winner-4947qjqvqrwhq4px-5000.preview.app.github.dev/');
+
+            socket.on('connect', function(){
+                console.log("Connected...!", socket.connected)
+            });
+
+            const video = document.querySelector("#videoElement");
+
+            video.width = 480; 
+            video.height = 480; ;
+
+            if (navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(function (err0r) {
+                    console.log(err0r)
+                    console.log("Something went wrong!");
+                });
+            }
+            function capture(video, scaleFactor) {
+                if(scaleFactor == null){
+                    scaleFactor = 1;
+                }
+                var w = video.videoWidth * scaleFactor;
+                var h = video.videoHeight * scaleFactor;
+                var canvas = document.createElement('canvas');
+                    canvas.width  = w;
+                    canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, w, h);
+                return canvas;
+            } 
+        
+            function openCvReady() {
+            cv['onRuntimeInitialized']=()=>{
+            let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            let cap = new cv.VideoCapture(video);
+
+            const FPS = 22;
+
+            setInterval(() => {
+                // cap.read(src);
+                var type = "image/png"
+                var video_element = document.getElementById("videoElement")
+                var frame = capture(video_element, 1)
+                var data = frame.toDataURL(type);
+                data = data.replace('data:' + type + ';base64,', '');
+                socket.emit('image', data);
+            }, 10000/FPS);
+            
+            socket.on('response_back', function(text){
+                document.getElementById('Prediction').innerHTML = text;
+            });
+            };
+            }
+            openCvReady();
+</script>
